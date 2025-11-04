@@ -4,32 +4,33 @@ import { verifyCaptcha } from "./utils/verifyCaptcha.js";
 import { sendEmail } from "./utils/sendEmail.js";
 import { createPDFReport } from "./utils/generatePdf.js";
 
-// Disable default body parsing
 export const config = {
-  api: {
-    bodyParser: false,
-  },
+  api: { bodyParser: false },
 };
 
+// ✅ Universal CORS helper
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 export default async function handler(req, res) {
-  // ✅ Step 1: Handle preflight request
+  // --- Handle preflight ---
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.status(200).end();
-    return;
+    setCors(res);
+    return res.status(200).end();
   }
 
-  // ✅ Step 2: Only accept POST
+  // --- Only accept POST ---
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    setCors(res);
+    res.setHeader("Allow", "POST, OPTIONS");
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // ✅ Step 3: Allow CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // --- Enable CORS for actual POST request ---
+  setCors(res);
 
   const form = formidable({ keepExtensions: true });
 
@@ -40,54 +41,61 @@ export default async function handler(req, res) {
     }
 
     const token = fields["h-captcha-response"];
+    const email = fields.email;
+
+    // --- Verify Captcha ---
     if (!token || !(await verifyCaptcha(token))) {
+      console.warn("Captcha failed or missing token");
       return res.status(403).json({ error: "hCaptcha verification failed" });
     }
 
+    // --- Extract form data ---
     const {
-      email,
       name,
       birthdate,
       birthtime,
       birthcity,
       birthstate,
-      birthcountry,
+      birthcountry
     } = fields;
 
-    const palmImage = files.palmImage;
+    // --- Temporary summaries ---
+    const astrologySummary = "☀️ Sun in Leo, Moon in Cancer – Balanced intuition and leadership.";
+    const numerologySummary = "🔢 Life Path 6 – Nurturing, responsible, and harmonious.";
+    const palmSummary = "✋ Clear heart line, steady fate line, and signs of travel and family growth.";
 
-    // For now, mock the summaries
-    const astrologySummary = "🌞 Sun in Leo, Moon in Aries.";
-    const numerologySummary = "🔢 Life Path 7 – seeker of truth.";
-    const palmSummary = "🖐️ Strong fate line, travel lines visible, 2 child lines.";
+    try {
+      // --- Generate PDF ---
+      const pdfBuffer = await createPDFReport({
+        name,
+        email,
+        birthdate,
+        birthtime,
+        birthcity,
+        birthstate,
+        birthcountry,
+        astrologySummary,
+        numerologySummary,
+        palmSummary
+      });
 
-    // Create PDF report
-    const pdfBuffer = await createPDFReport({
-      name,
-      email,
-      birthdate,
-      birthtime,
-      birthcity,
-      birthstate,
-      birthcountry,
-      astrologySummary,
-      numerologySummary,
-      palmSummary,
-    });
+      // --- Send Email ---
+      await sendEmail(
+        email,
+        "🧘 Your Complete Spiritual Report",
+        "Your astrology, numerology, and palm reading report is attached.",
+        pdfBuffer
+      );
 
-    // Send email with PDF
-    await sendEmail(
-      email,
-      "🧘 Your Spiritual Report is Ready",
-      "Attached is your personal astrology, numerology, and palm reading report.",
-      pdfBuffer
-    );
-
-    // ✅ Step 4: Return JSON response with CORS header
-    return res.status(200).json({
-      astrologySummary,
-      numerologySummary,
-      palmSummary,
-    });
+      // --- Respond with summaries ---
+      return res.status(200).json({
+        astrologySummary,
+        numerologySummary,
+        palmSummary
+      });
+    } catch (e) {
+      console.error("Server error:", e);
+      return res.status(500).json({ error: "Internal server error" });
+    }
   });
 }
