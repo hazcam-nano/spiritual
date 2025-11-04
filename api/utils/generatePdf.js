@@ -1,39 +1,46 @@
 import PDFDocument from "pdfkit";
 import getStream from "get-stream";
 
-export async function createPDFReport(data) {
+export async function createPDFReport({
+  name,
+  email,
+  birthdate,
+  birthtime,
+  birthcity,
+  birthstate,
+  birthcountry,
+  astrologySummary,
+  numerologySummary,
+  palmSummary
+}) {
   const doc = new PDFDocument();
-  doc.fontSize(16).text("🧘 Full Spiritual Report", { align: "center" });
+  doc.fontSize(20).text("🧘 Full Spiritual Report", { align: "center" });
   doc.moveDown();
 
-  doc.fontSize(12).text(`Name: ${data.name}`);
-  doc.text(`Email: ${data.email}`);
-  doc.text(`DOB: ${data.birthdate}`);
-  doc.text(`Time: ${data.birthtime}`);
-  doc.text(`Place: ${data.birthcity}, ${data.birthstate}, ${data.birthcountry}`);
+  doc.fontSize(12).text(`📛 Name: ${name}`);
+  doc.text(`📧 Email: ${email}`);
+  doc.text(`📅 DOB: ${birthdate}`);
+  doc.text(`⏰ Time: ${birthtime || 'Not provided'}`);
+  doc.text(`🌍 Place: ${birthcity}, ${birthstate}, ${birthcountry}`);
   doc.moveDown();
 
-  // Astrology Table
-  doc.text("🪐 Astrology Summary", { underline: true });
-  doc.text(data.astrologySummary);
+  doc.fontSize(14).text("🪐 Astrology Summary", { underline: true });
+  doc.fontSize(12).text(astrologySummary);
   doc.moveDown();
 
-  // Numerology Table
-  doc.text("🔢 Numerology Summary", { underline: true });
-  doc.text(data.numerologySummary);
+  doc.fontSize(14).text("🔢 Numerology Summary", { underline: true });
+  doc.fontSize(12).text(numerologySummary);
   doc.moveDown();
 
-  // Palmistry Table
-  doc.text("✋ Palm Reading Summary", { underline: true });
-  doc.text(data.palmSummary);
+  doc.fontSize(14).text("✋ Palm Reading Summary", { underline: true });
+  doc.fontSize(12).text(palmSummary);
   doc.moveDown();
 
-  // Combined Summary
-  doc.fontSize(14).text("🔮 Summary", { underline: true });
-  doc.fontSize(12).text("Key Numerology: Life Path 7, Soul Urge 5");
-  doc.text("Key Astrology: Sun Scorpio, Emotional Moon");
-  doc.text("Key Palmistry: Travel lines, 2 children, long life line");
-
+  doc.fontSize(14).text("🔮 Final Summary", { underline: true });
+  doc.fontSize(12).text("Key Astrology Insight: Sun Leo, Gemini Rising");
+  doc.text("Key Numerology: Life Path 3, Soul Urge 5");
+  doc.text("Palm Reading: Strong fate line, travel lines, 2 children lines");
   doc.end();
+
   return await getStream.buffer(doc);
 }
