@@ -1,3 +1,7 @@
+// -------- spiritual-report.js --------
+// Serverless function for Vercel that handles the Shopify form submission
+// Adds full CORS support + handles POST and OPTIONS requests.
+
 const formidable = require("formidable");
 const fs = require("fs/promises");
 const { verifyCaptcha } = require("../utils/verifyCaptcha");
@@ -5,50 +9,58 @@ const { sendEmail } = require("../utils/sendEmail");
 const { createPDFReport } = require("../utils/generatePdf");
 
 module.exports = async (req, res) => {
-  // ✅ Set CORS headers early — applies to ALL paths and errors
+  // ✅ 1. Always set CORS headers first
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Handle preflight request
+  // ✅ 2. Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // ✅ Handle only POST requests
+  // ✅ 3. Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
+  // ✅ 4. Parse multipart form (for image upload)
   const form = formidable({ keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("Form error:", err);
+      console.error("Form parse error:", err);
+      // include CORS headers again just in case
+      res.setHeader("Access-Control-Allow-Origin", "*");
       return res.status(500).json({ error: "Form parsing failed" });
     }
 
-    const token = fields["h-captcha-response"];
-    const email = fields.email;
-
-    if (!token || !(await verifyCaptcha(token))) {
-      return res.status(403).json({ error: "hCaptcha verification failed" });
-    }
-
-    const {
-      name,
-      birthdate,
-      birthtime,
-      birthcity,
-      birthstate,
-      birthcountry,
-    } = fields;
-
-    const astrologySummary = "🌞 Sun in Virgo, deep thinker and planner.";
-    const numerologySummary = "🔢 Life Path 9 – humanitarian, old soul.";
-    const palmSummary = "✋ Long heart line, steady fate line – emotional depth and career focus.";
-
     try {
+      const token = fields["h-captcha-response"];
+      const email = fields.email;
+
+      // ✅ 5. Verify hCaptcha
+      if (!token || !(await verifyCaptcha(token))) {
+        return res.status(403).json({ error: "hCaptcha verification failed" });
+      }
+
+      // ✅ 6. Collect user fields
+      const {
+        name,
+        birthdate,
+        birthtime,
+        birthcity,
+        birthstate,
+        birthcountry,
+      } = fields;
+
+      // ✅ 7. Generate summaries (placeholder logic)
+      const astrologySummary = "☀️ Sun in Leo, Moon in Cancer – empathetic leader.";
+      const numerologySummary = "🔢 Life Path 6 – responsible, caring, creative.";
+      const palmSummary =
+        "✋ Clear heart line, strong fate line; indications of travel and balanced relationships.";
+
+      // ✅ 8. Generate PDF buffer
       const pdfBuffer = await createPDFReport({
         name,
         email,
@@ -62,26 +74,29 @@ module.exports = async (req, res) => {
         palmSummary,
       });
 
+      // ✅ 9. Send the email with attached PDF
       await sendEmail(
         email,
         "🧘 Your Spiritual Report",
-        "Attached is your full spiritual reading.",
+        "Your full astrology, numerology, and palm reading report is attached.",
         pdfBuffer
       );
 
-      return res.status(200).json({
+      // ✅ 10. Send JSON response back to Shopify form
+      res.status(200).json({
         astrologySummary,
         numerologySummary,
         palmSummary,
       });
     } catch (error) {
-      console.error("Internal error:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      console.error("Server error:", error);
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.status(500).json({ error: "Internal Server Error" });
     }
   });
 };
 
-// Vercel config
+// ✅ 11. Disable Vercel bodyParser for formidable
 module.exports.config = {
   api: {
     bodyParser: false,
