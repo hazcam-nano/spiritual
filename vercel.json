@@ -1,10 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "api/spiritual-report.js": {
-      "memory": 512,
-      "maxDuration": 10
+  "builds": [
+    {
+      "src": "api/spiritual-report.js",
+      "use": "@vercel/node"
     }
-  }
+  ]
 }
-
