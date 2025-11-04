@@ -4,28 +4,31 @@ import { verifyCaptcha } from "./utils/verifyCaptcha.js";
 import { sendEmail } from "./utils/sendEmail.js";
 import { createPDFReport } from "./utils/generatePdf.js";
 
+// Disable default body parsing
 export const config = {
   api: {
-    bodyParser: false
-  }
+    bodyParser: false,
+  },
 };
 
 export default async function handler(req, res) {
-  // ✅ Handle OPTIONS preflight request for CORS
+  // ✅ Step 1: Handle preflight request
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  // ✅ Allow only POST
+  // ✅ Step 2: Only accept POST
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
+    res.setHeader("Access-Control-Allow-Origin", "*");
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // ✅ CORS header for POST
+  // ✅ Step 3: Allow CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const form = formidable({ keepExtensions: true });
@@ -37,7 +40,7 @@ export default async function handler(req, res) {
     }
 
     const token = fields["h-captcha-response"];
-    if (!(await verifyCaptcha(token))) {
+    if (!token || !(await verifyCaptcha(token))) {
       return res.status(403).json({ error: "hCaptcha verification failed" });
     }
 
@@ -48,16 +51,17 @@ export default async function handler(req, res) {
       birthtime,
       birthcity,
       birthstate,
-      birthcountry
+      birthcountry,
     } = fields;
 
     const palmImage = files.palmImage;
 
-    // TEMPORARY: Replace with real logic later
-    const astrologySummary = "Sun in Leo, Moon in Scorpio – Intense and passionate.";
-    const numerologySummary = "Life Path 6 – Nurturer. Soul Urge 3 – Creative soul.";
-    const palmSummary = "Strong heart line, travel marks, 2 child lines, long life line.";
+    // For now, mock the summaries
+    const astrologySummary = "🌞 Sun in Leo, Moon in Aries.";
+    const numerologySummary = "🔢 Life Path 7 – seeker of truth.";
+    const palmSummary = "🖐️ Strong fate line, travel lines visible, 2 child lines.";
 
+    // Create PDF report
     const pdfBuffer = await createPDFReport({
       name,
       email,
@@ -68,20 +72,22 @@ export default async function handler(req, res) {
       birthcountry,
       astrologySummary,
       numerologySummary,
-      palmSummary
+      palmSummary,
     });
 
+    // Send email with PDF
     await sendEmail(
       email,
-      "🔮 Your Full Spiritual Report",
-      "See attached PDF for your full astrology, numerology, and palm reading report.",
+      "🧘 Your Spiritual Report is Ready",
+      "Attached is your personal astrology, numerology, and palm reading report.",
       pdfBuffer
     );
 
+    // ✅ Step 4: Return JSON response with CORS header
     return res.status(200).json({
       astrologySummary,
       numerologySummary,
-      palmSummary
+      palmSummary,
     });
   });
 }
