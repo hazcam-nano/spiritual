@@ -16,9 +16,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // --- CORS UTILITY ---
 const setCORS = (req, res) => {
-  const allow = process.env.SHOP_ORIGIN?.trim() || req.headers.origin || "*";
-  res.setHeader("Access-Control-Allow-Origin", allow);
-  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
