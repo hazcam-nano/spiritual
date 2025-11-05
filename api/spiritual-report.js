@@ -10,6 +10,10 @@ import { verifyCaptcha } from "./utils/verifyCaptcha.js";
 import { generatePdfBuffer } from "./utils/generatePdf.js";
 import { sendEmailWithAttachment } from "./utils/sendEmail.js";
 
+// --- Logging ---
+
+console.log("spiritual-report.js function hit:", req.method);
+
 // --- CONFIG ---
 sg.setApiKey(process.env.SENDGRID_API_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
