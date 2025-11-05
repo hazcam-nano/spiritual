@@ -5,7 +5,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default async function handler(req, res) {
   const msg = {
-    to: 'your-email@example.com',
+    to: 'henry@hazcam.io',
     from: 'sales@hazcam.io',
     subject: 'Test email',
     html: '<p>This is a test email.</p>',
