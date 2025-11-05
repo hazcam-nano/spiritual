@@ -1,25 +1,25 @@
-import sgMail from "@sendgrid/mail";
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+import sg from "@sendgrid/mail";
 
-export async function sendEmail(to, subject, text, pdfBuffer) {
-  try {
-    await sgMail.send({
-      to,
-      from: process.env.SENDGRID_FROM_EMAIL,
-      subject,
-      text,
-      html: `<p>${text}</p>`,
-      attachments: [
-        {
-          content: pdfBuffer.toString("base64"),
-          filename: "spiritual-report.pdf",
-          type: "application/pdf",
-          disposition: "attachment"
-        }
-      ]
-    });
-  } catch (error) {
-    console.error("SendGrid error:", error.response?.body || error.message);
-    throw new Error("Email failed to send.");
-  }
+sg.setApiKey(process.env.SENDGRID_API_KEY);
+
+/**
+ * Sends an email with a PDF attachment
+ */
+export async function sendEmailWithAttachment({ to, subject, html, buffer, filename = "report.pdf" }) {
+  const msg = {
+    to,
+    from: process.env.SENDGRID_FROM_EMAIL || "no-reply@yourdomain.com", // make sure this is verified in SendGrid
+    subject,
+    html,
+    attachments: [
+      {
+        content: buffer.toString("base64"),
+        filename,
+        type: "application/pdf",
+        disposition: "attachment",
+      },
+    ],
+  };
+
+  await sg.send(msg);
 }
