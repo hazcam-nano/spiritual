@@ -1,6 +1,5 @@
 import PDFDocument from "pdfkit";
 import getStream from "get-stream";
-import getStream from 'get-stream';
 
 export async function createPDFReport({
   name,
