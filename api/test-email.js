@@ -1,14 +1,13 @@
 // /api/test-email.js
 
-import sg from "@sendgrid/mail";
-sg.setApiKey(process.env.SENDGRID_API_KEY);
+import sgMail from "@sendgrid/mail";
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Ensure key is set
 if (!process.env.SENDGRID_API_KEY) {
   throw new Error('SENDGRID_API_KEY environment variable is not set');
 }
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default async function handler(req, res) {
   const msg = {
