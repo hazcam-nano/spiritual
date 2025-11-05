@@ -13,6 +13,7 @@ export async function createPDFReport({
   numerologySummary,
   palmSummary
 }) {
+  const getStream = require("get-stream");
   const doc = new PDFDocument();
   doc.fontSize(20).text("🧘 Full Spiritual Report", { align: "center" });
   doc.moveDown();
