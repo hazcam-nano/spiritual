@@ -4,7 +4,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export default async function handler(req, res) {
   const msg = {
-    to: 'sales@hazcam.io',
+    to: 'henrycvalk@gmail.com',
     from: 'sales@hazcam.io',
     subject: '✅ Vercel SendGrid Test',
     text: 'Testing SendGrid via API route on Vercel.',
