@@ -1,29 +1,30 @@
-// /api/test-email.js
+// api/test-email.js
 
-import sgMail from "@sendgrid/mail";
+import sgMail from '@sendgrid/mail';
+
+if (!process.env.SENDGRID_API_KEY) {
+  throw new Error('SENDGRID_API_KEY is not defined in environment variables');
+}
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-// Ensure key is set
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error('SENDGRID_API_KEY environment variable is not set');
-}
-
 export default async function handler(req, res) {
   const msg = {
-    to: 'henrycvalk@gmail.com',
-    from: 'henry@hazcam.io', // MUST be verified in SendGrid
+    to: 'henrycvalk@gmail.com', // ✅ Use a real inbox
+    from: 'sales@hazcam.io',    // ✅ This must be verified in SendGrid
     subject: '✅ Vercel SendGrid Test',
-    text: 'Testing SendGrid via API route on Vercel.',
-    html: '<strong>This is a Vercel + SendGrid email test</strong>',
+    text: 'Testing SendGrid via Vercel API route.',
+    html: '<strong>This is a test email from your Vercel function.</strong>',
   };
 
   try {
     await sgMail.send(msg);
-    res.status(200).json({ success: true, message: 'Email sent' });
+    res.status(200).json({ success: true, message: 'Email sent successfully' });
   } catch (error) {
-    console.error('❌ SendGrid error:', error.response?.body || error.message);
-    res.status(500).json({ success: false, error: error.response?.body || error.message });
+    console.error('❌ Email sending error:', error.response?.body || error);
+    res.status(500).json({
+      success: false,
+      error: error.response?.body || error.message,
+    });
   }
 }
-
