@@ -1,27 +1,36 @@
-// api/utils/sendEmail.js
+// utils/sendEmail.js
 
-import sg from "@sendgrid/mail";
+import sgMail from '@sendgrid/mail';
 
-sg.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 /**
- * Sends an email with a PDF attachment
+ * Send an email with optional PDF attachment
+ * @param {Object} options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.html - HTML body
+ * @param {Buffer} [options.buffer] - Optional PDF buffer
+ * @param {string} [options.filename] - Optional filename for attachment
  */
-export async function sendEmailWithAttachment({ to, subject, html, buffer, filename = "report.pdf" }) {
+export async function sendEmailWithAttachment({ to, subject, html, buffer, filename }) {
   const msg = {
     to,
-    from: process.env.SENDGRID_FROM_EMAIL || "no-reply@yourdomain.com",
+    from: 'sales@hazcam.io', // ✅ Make sure this is a verified sender in SendGrid
     subject,
     html,
-    attachments: [
-      {
-        content: buffer.toString("base64"),
-        filename,
-        type: "application/pdf",
-        disposition: "attachment",
-      },
-    ],
   };
 
-  await sg.send(msg);
+  if (buffer && filename) {
+    msg.attachments = [
+      {
+        content: buffer.toString('base64'),
+        filename,
+        type: 'application/pdf',
+        disposition: 'attachment',
+      },
+    ];
+  }
+
+  await sgMail.send(msg);
 }
