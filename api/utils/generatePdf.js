@@ -1,46 +1,27 @@
-import PDFDocument from "pdfkit";
-import getStream from "get-stream";
+import PDFDocument from 'pdfkit';
+import getStream from 'get-stream'; // This assumes you've already installed it
 
-export async function createPDFReport({
-  name,
-  email,
-  birthdate,
-  birthtime,
-  birthcity,
-  birthstate,
-  birthcountry,
-  astrologySummary,
-  numerologySummary,
-  palmSummary
-}) {
+export async function generatePdfBuffer({ fullName, birthdate, birthTime, birthPlace, reading }) {
   const doc = new PDFDocument();
-  doc.fontSize(20).text("🧘 Full Spiritual Report", { align: "center" });
+  
+  doc.fontSize(18).text("🧘 Spiritual Report", { align: "center" });
   doc.moveDown();
 
-  doc.fontSize(12).text(`📛 Name: ${name}`);
-  doc.text(`📧 Email: ${email}`);
-  doc.text(`📅 DOB: ${birthdate}`);
-  doc.text(`⏰ Time: ${birthtime || 'Not provided'}`);
-  doc.text(`🌍 Place: ${birthcity}, ${birthstate}, ${birthcountry}`);
+  doc.fontSize(12).text(`Name: ${fullName || "Not provided"}`);
+  doc.text(`Birth Date: ${birthdate || "Not provided"}`);
+  doc.text(`Birth Time: ${birthTime || "Not provided"}`);
+  doc.text(`Birth Place: ${birthPlace || "Not provided"}`);
+  doc.moveDown();
+  doc.text("🌀 Insights:", { underline: true });
   doc.moveDown();
 
-  doc.fontSize(14).text("🪐 Astrology Summary", { underline: true });
-  doc.fontSize(12).text(astrologySummary);
-  doc.moveDown();
+  doc.text(reading || "No insights provided", {
+    lineGap: 4
+  });
 
-  doc.fontSize(14).text("🔢 Numerology Summary", { underline: true });
-  doc.fontSize(12).text(numerologySummary);
-  doc.moveDown();
-
-  doc.fontSize(14).text("✋ Palm Reading Summary", { underline: true });
-  doc.fontSize(12).text(palmSummary);
-  doc.moveDown();
-
-  doc.fontSize(14).text("🔮 Final Summary", { underline: true });
-  doc.fontSize(12).text("Key Astrology Insight: Sun Leo, Gemini Rising");
-  doc.text("Key Numerology: Life Path 3, Soul Urge 5");
-  doc.text("Palm Reading: Strong fate line, travel lines, 2 children lines");
   doc.end();
 
-  return await getStream.buffer(doc);
+  // Convert PDF stream to buffer using get-stream
+  const buffer = await getStream.buffer(doc);
+  return buffer;
 }
