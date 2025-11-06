@@ -1,37 +1,40 @@
-// api/spiritual-report.js
+import sgMail from '@sendgrid/mail';
+import OpenAI from 'openai';
+import formidable from 'formidable';
+import { verifyCaptcha } from './utils/verifyCaptcha.js';
+import { generatePdfBuffer } from './utils/generatePdf.js';
+import { sendEmailWithAttachment } from './utils/sendEmail.js';
 
-import getStream from "get-stream";
-import sg from "@sendgrid/mail";
-import OpenAI from "openai";
-import formidable from "formidable";
-import fs from "fs";
-import { createReadStream } from "fs";
-import path from "path";
-import { verifyCaptcha } from "./utils/verifyCaptcha.js";
-import { generatePdfBuffer } from "./utils/generatePdf.js";
-import { sendEmailWithAttachment } from "./utils/sendEmail.js";
+// --- Disable Next.js default body parser for file uploads
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-// --- Logging ---
+// ✅ Set SendGrid API key (only from env — no req usage!)
+if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+  console.error("❌ SendGrid API key is missing or invalid.");
+}
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-console.log("spiritual-report.js function hit:", req.method);
-
-// --- CONFIG ---
-sg.setApiKey(process.env.SENDGRID_API_KEY);
+// ✅ OpenAI setup
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// --- CORS UTILITY ---
+// --- CORS Setup ---
 const setCORS = (req, res) => {
-  const allow = process.env.SHOP_ORIGIN?.trim() || req.headers?.origin || "*";
+  const allow = process.env.SHOP_ORIGIN?.trim() || req.headers.origin || "*";
   res.setHeader("Access-Control-Allow-Origin", allow);
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    req.headers?.["access-control-request-headers"] || "Content-Type"
+    req.headers["access-control-request-headers"] || "Content-Type"
   );
   res.setHeader("Access-Control-Max-Age", "86400");
 };
 
+// --- Utility Response Helpers ---
 const bad = (req, res, code, msg, extra = {}) => {
   setCORS(req, res);
   return res.status(code).json({ ok: false, error: msg, ...extra });
@@ -42,28 +45,14 @@ const ok = (req, res, payload) => {
   return res.status(200).json(payload);
 };
 
-// --- DISABLE DEFAULT BODY PARSER ---
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-// --- MAIN HANDLER ---
+// --- Main API Handler ---
 export default async function handler(req, res) {
   setCORS(req, res);
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end(); // Preflight CORS
-  }
+  if (req.method === "OPTIONS") return res.status(204).end();
+  if (req.method === "GET") return ok(req, res, { message: "Spiritual report API is online." });
+  if (req.method !== "POST") return bad(req, res, 405, "Method not allowed");
 
-  if (req.method === "GET") {
-    return ok(req, res, { ok: true, message: "API is online" });
-  }
-
-  if (req.method !== "POST") {
-    return bad(req, res, 405, "Method not allowed");
-  }
   const form = formidable({ multiples: false, keepExtensions: true });
 
   try {
@@ -85,10 +74,9 @@ export default async function handler(req, res) {
       const captchaSuccess = await verifyCaptcha(hCaptchaToken);
       if (!captchaSuccess) return bad(req, res, 403, "hCaptcha verification failed");
 
-      // ✅ Read palm image
       const palmImagePath = files.palmImage.filepath;
 
-      // ✅ Generate spiritual reading using OpenAI
+      // ✅ Create OpenAI prompt
       const prompt = `
 Generate a spiritual report in three sections:
 1. Astrology based on:
@@ -119,12 +107,12 @@ Format clearly in sections and keep a summary at the end.
         reading: aiResult,
       });
 
-      // ✅ Send email with PDF
+      // ✅ Email PDF
       await sendEmailWithAttachment({
         to: email,
         subject: "🧘 Your Spiritual Report",
         html: `<p>Dear ${fullName || "Seeker"},</p>
-               <p>Your personalized spiritual report is ready and attached as a PDF.</p>
+               <p>Your personalized spiritual report is ready. Please find it attached as a PDF.</p>
                <p>Thank you for using our service!</p>`,
         buffer: pdfBuffer,
         filename: "spiritual-report.pdf",
@@ -136,7 +124,7 @@ Format clearly in sections and keep a summary at the end.
       });
     });
   } catch (err) {
-    console.error("❌ Error generating spiritual report:", err);
+    console.error("❌ Spiritual report error:", err);
     return bad(req, res, 500, "Internal server error", { err });
   }
 }
